@@ -5,10 +5,10 @@ package de.cogent.reactive.project.domain
  */
 case class ProjectPortfolio() {
 
-  val portfolio :Set[Project]
+  val portfolio = Set[Project]
 
   def addProject(project :Project) :Unit => {
-    portfolio = portfolio  + project
+    portfolio  += project
   }
 
 }

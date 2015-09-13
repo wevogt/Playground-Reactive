@@ -10,6 +10,7 @@ object projectApp extends App {
 
 
   Thread.sleep(5000)
-  system.shutdown()
+  system.terminate();
+  //system.shutdown()
 
 }

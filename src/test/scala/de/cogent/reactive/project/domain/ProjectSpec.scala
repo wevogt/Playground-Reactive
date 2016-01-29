@@ -1,21 +1,11 @@
 package de.cogent.reactive.project.domain
 
-import akka.actor.ActorSystem
-import akka.testkit.ImplicitSender
-import akka.testkit.TestKit
-import org.scalatest.MustMatchers
-import org.scalatest.WordSpecLike
 import akka.actor.FSM.{CurrentState, SubscribeTransitionCallBack}
 import akka.actor.{ActorSystem, Props}
-import akka.pattern.ask
 import akka.testkit.{ImplicitSender, TestKit}
-import akka.util.Timeout
-import ProjectMachine.{BuildState, InceptionState, PausedState, PlanningState, StalledState, TransitionState}
-import ProjectPortfolio._
-import org.scalatest._
-
-import scala.concurrent.Await
-import scala.concurrent.duration._
+import de.cogent.reactive.project.domain.ProjectMachine.BuildState
+import de.cogent.reactive.project.domain.ProjectMachineProtocol.{build, plan, start}
+import org.scalatest.{MustMatchers, WordSpecLike}
 
 
 /**
@@ -26,6 +16,23 @@ with MustMatchers
 with WordSpecLike
 //with StopSystemAfterAll
 with ImplicitSender {
+
+
+  "A project in PlanningState" must {}
+    "transition to BuildState" in {
+
+      val projectActor = system.actorOf(Props[ProjectMachine])
+
+      projectActor ! start
+      projectActor ! plan
+      projectActor ! build
+      projectActor ! SubscribeTransitionCallBack(testActor)
+
+      expectMsgPF() {
+        case CurrentState(_, BuildState) => true
+        case _ => fail("must transition do BuildState")
+      }
+    }
 
 
 /*

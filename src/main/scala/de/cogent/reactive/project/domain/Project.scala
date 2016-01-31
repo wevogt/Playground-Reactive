@@ -1,9 +1,11 @@
 package de.cogent.reactive.project.domain
 
+import akka.actor.FSM.State
 import akka.actor.{ Actor, ActorSystem, Props, FSM }
+import de.cogent.reactive.project.domain.ProjectMachine.Data
 
 
-object ProjectMachineProtocol {
+object ProjectMachineEvent {
   case object init
   case object start
   case object plan
@@ -30,65 +32,70 @@ object ProjectMachine {
   case object PausedState extends State
   case object StalledState extends State
   case object ClosedState extends State
+
+  sealed trait Data
+  case object Uninitialized extends Data
+  //final class Project(tile : String, budget :Option[BigDecimal]) extends Data
 }
 
 class ProjectMachine extends Actor with FSM[ProjectMachine.State, Project] {
 
   import ProjectMachine._
 
-  startWith(InceptionState, Project("myProject"))
+  //startWith(InceptionState, myProject)
+  startWith(InceptionState, Project("STFP", None))
 
   when(InceptionState) {
-    case Event(ProjectMachineProtocol.start, _) => goto(PlanningState)
-    case Event(ProjectMachineProtocol.plan, _)  => goto(PlanningState)
+    case Event(ProjectMachineEvent.start, _) => goto(PlanningState)
+    case Event(ProjectMachineEvent.plan, _)  => goto(PlanningState)
   }
 
   when(PlanningState) {
-    case Event(ProjectMachineProtocol.build, _) => goto(BuildState)
-    case Event(ProjectMachineProtocol.done, _) => goto(BuildState)
-    case Event(ProjectMachineProtocol.pause, _) => goto(PausedState)
-    case Event(ProjectMachineProtocol.cancel, _) => goto(StalledState)
+    case Event(ProjectMachineEvent.build, _) => goto(BuildState)
+    case Event(ProjectMachineEvent.done, _) => goto(BuildState)
+    case Event(ProjectMachineEvent.pause, _) => goto(PausedState)
+    case Event(ProjectMachineEvent.cancel, _) => goto(StalledState)
   }
 
   when(BuildState) {
-    case Event(ProjectMachineProtocol.test, _) => goto(TestState)
-    case Event(ProjectMachineProtocol.done, _) => goto(TestState)
-    case Event(ProjectMachineProtocol.pause, _) => goto(PausedState)
-    case Event(ProjectMachineProtocol.done, _) => goto(TestState)
+    case Event(ProjectMachineEvent.test, _) => goto(TestState)
+    case Event(ProjectMachineEvent.done, _) => goto(TestState)
+    case Event(ProjectMachineEvent.pause, _) => goto(PausedState)
+    case Event(ProjectMachineEvent.done, _) => goto(TestState)
   }
 
   when(TestState) {
-    case Event(ProjectMachineProtocol.bugfix, _ ) => goto(BugfixState)
-    case Event(ProjectMachineProtocol.rollout, _) => goto(TransitionState)
-    case Event(ProjectMachineProtocol.done, _) => goto(TransitionState)
-    case Event(ProjectMachineProtocol.pause, _) => goto(PausedState)
+    case Event(ProjectMachineEvent.bugfix, _ ) => goto(BugfixState)
+    case Event(ProjectMachineEvent.rollout, _) => goto(TransitionState)
+    case Event(ProjectMachineEvent.done, _) => goto(TransitionState)
+    case Event(ProjectMachineEvent.pause, _) => goto(PausedState)
   }
 
   when (BugfixState) {
-    case Event(ProjectMachineProtocol.test, _) => goto(TestState)
-    case Event(ProjectMachineProtocol.done, _) => goto(TestState)
-    case Event(ProjectMachineProtocol.pause, _) => goto(PausedState)
-    case Event(ProjectMachineProtocol.continue, _) => goto(BugfixState)
+    case Event(ProjectMachineEvent.test, _) => goto(TestState)
+    case Event(ProjectMachineEvent.done, _) => goto(TestState)
+    case Event(ProjectMachineEvent.pause, _) => goto(PausedState)
+    case Event(ProjectMachineEvent.continue, _) => goto(BugfixState)
   }
 
   when(TransitionState) {
-    case Event(ProjectMachineProtocol.done, _) => goto(ClosedState)
+    case Event(ProjectMachineEvent.done, _) => goto(ClosedState)
   }
 
   when(ClosedState) {
-    case Event(ProjectMachineProtocol.restart, _) => goto(InceptionState)
+    case Event(ProjectMachineEvent.restart, _) => goto(InceptionState)
   }
 
   when(PausedState) {
-    case Event(ProjectMachineProtocol.build, _) => goto(BuildState)
-    case Event(ProjectMachineProtocol.rollout, _) => goto(TransitionState)
-    case Event(ProjectMachineProtocol.cancel, _) => goto(StalledState)
+    case Event(ProjectMachineEvent.build, _) => goto(BuildState)
+    case Event(ProjectMachineEvent.rollout, _) => goto(TransitionState)
+    case Event(ProjectMachineEvent.cancel, _) => goto(StalledState)
     //case Event(continue, _) => goto(pre)
   }
 
   when(StalledState) {
-    case Event(ProjectMachineProtocol.restart, _) => goto(InceptionState)
-    case Event(ProjectMachineProtocol.cancel, _) => goto(StalledState)
+    case Event(ProjectMachineEvent.restart, _) => goto(InceptionState)
+    case Event(ProjectMachineEvent.cancel, _) => goto(StalledState)
   }
 
   whenUnhandled {
@@ -100,7 +107,15 @@ class ProjectMachine extends Actor with FSM[ProjectMachine.State, Project] {
     case InceptionState -> PlanningState =>
       println("from \tinit \t\tto \tplanning")
       stateData.budget = 100
-    case PlanningState -> BuildState => println("from \tplanning \tto \tbuilding")
+      println(stateData)
+
+    case PlanningState -> BuildState => {
+      println("from \tplanning \tto \tbuilding")
+      stateData.budget=200000
+      stateData.manager=Some("John Impossible")
+      println(stateData)
+    }
+
     case BuildState -> TestState => println("from \tbuilding \tto \ttesting")
     case TestState -> TransitionState => println("from \ttesting \tto \trollout")
     case TestState -> PausedState => println("from \ttesting \tto \tpaused")
@@ -120,10 +135,12 @@ class ProjectMachine extends Actor with FSM[ProjectMachine.State, Project] {
  * Created by werner on 13.09.15.
  */
 //case class Project() extends Actor {
-case class Project(name :String)  {
+case class Project(title :String = "-", var manager :Option[String])  {
 
-  //val name :String
-  var budget :Double = 0
+  var budget :BigDecimal = 0
+
+
+  override def toString(): String = "\t\t\t--> Project " + title + ", current Manager is " + manager.getOrElse(""""has to be found"""") +", planned bugdet = " + {budget} + " !"
 
   //override def receive: Receive = ???
 }

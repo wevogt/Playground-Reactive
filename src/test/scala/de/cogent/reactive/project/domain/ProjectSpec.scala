@@ -4,7 +4,7 @@ import akka.actor.FSM.{CurrentState, SubscribeTransitionCallBack}
 import akka.actor.{ActorSystem, Props}
 import akka.testkit.{ImplicitSender, TestKit}
 import de.cogent.reactive.project.domain.ProjectMachine.BuildState
-import de.cogent.reactive.project.domain.ProjectMachineProtocol.{build, plan, start}
+import de.cogent.reactive.project.domain.ProjectMachineEvent.{build, plan, start}
 import org.scalatest.{MustMatchers, WordSpecLike}
 
 
@@ -30,6 +30,7 @@ with ImplicitSender {
 
       expectMsgPF() {
         case CurrentState(_, BuildState) => true
+        //case CurrentState(_, BuildState) => { true
         case _ => fail("must transition do BuildState")
       }
     }

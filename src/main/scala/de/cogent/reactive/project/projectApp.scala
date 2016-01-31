@@ -2,7 +2,7 @@ package de.cogent.reactive.project
 
 import akka.actor._
 import de.cogent.reactive.project.domain.ProjectMachine
-import de.cogent.reactive.project.domain.ProjectMachineProtocol._
+import de.cogent.reactive.project.domain.ProjectMachineEvent._
 import de.cogent.reactive.project.domain.Project
 
 /**
@@ -12,9 +12,10 @@ object projectApp extends App {
 
   val system = ActorSystem("ProjectEnterprise")
 
-  var projectActor = system.actorOf(Props[ProjectMachine])
+  //val myProject :Project = Project("GREAT", None)
+  //println(projectApp.myProject.toString())
 
-  val myProject = Project
+  var projectActor = system.actorOf(Props[ProjectMachine])
 
   //projectActor ! start
   projectActor ! plan
